@@ -9,19 +9,23 @@ import requests
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
 
-def _gemini(model: str, body: dict) -> dict:
-    """Chama a API do Gemini com até 3 tentativas (limite de uso / instabilidade)."""
+MODELOS_TEXTO_PADRAO = "gemini-3.8-flash,gemini-3.7-flash,gemini-3.6-flash"
+
+
+def _gemini(model: str, body: dict, tentativas: int = 3) -> dict:
+    """Chama a API do Gemini, repetindo em caso de sobrecarga ou demora."""
     headers = {"x-goog-api-key": os.environ["GEMINI_API_KEY"]}
-    for tentativa in range(3):
+    for tentativa in range(tentativas):
+        ultima = tentativa == tentativas - 1
         try:
-            r = requests.post(GEMINI_URL.format(model=model), headers=headers, json=body, timeout=300)
+            r = requests.post(GEMINI_URL.format(model=model), headers=headers, json=body, timeout=120)
         except (requests.exceptions.Timeout, requests.exceptions.ConnectionError):
-            if tentativa < 2:
-                time.sleep(20)
+            if not ultima:
+                time.sleep(15)
                 continue
-            raise
-        if r.status_code in (429, 500, 503) and tentativa < 2:
-            time.sleep(30 * (tentativa + 1))
+            raise RuntimeError(f"Gemini ({model}) não respondeu a tempo")
+        if r.status_code in (429, 500, 503) and not ultima:
+            time.sleep(20 * (tentativa + 1))
             continue
         if not r.ok:
             raise RuntimeError(f"Gemini ({model}) erro {r.status_code}: {r.text[:500]}")
@@ -56,12 +60,21 @@ Responda SOMENTE com JSON neste formato:
 def gerar_receita(ideia: str | None, evitar: list[str]) -> dict:
     texto_ideia = f"- A receita de hoje deve ser: {ideia}\n" if ideia else "- Escolha você uma receita caseira brasileira querida.\n"
     prompt = PROMPT_RECEITA.format(ideia=texto_ideia, evitar=", ".join(evitar) or "nenhuma")
-    modelo = os.environ.get("GEMINI_TEXT_MODEL") or "gemini-3.8-flash"
-    config = {"responseMimeType": "application/json"}
-    if modelo.startswith("gemini-3"):
-        config["thinkingConfig"] = {"thinkingLevel": "low"}  # receita não precisa de raciocínio longo
-    body = {"contents": [{"parts": [{"text": prompt}]}], "generationConfig": config}
-    resp = _gemini(modelo, body)
+    lista = os.environ.get("GEMINI_TEXT_MODEL") or MODELOS_TEXTO_PADRAO
+    modelos = [m.strip() for m in lista.split(",") if m.strip()]
+    erros = []
+    for modelo in modelos:  # se um modelo estiver fora do ar ou sobrecarregado, tenta o próximo
+        config = {"responseMimeType": "application/json"}
+        if modelo.startswith("gemini-3"):
+            config["thinkingConfig"] = {"thinkingLevel": "low"}  # receita não precisa de raciocínio longo
+        body = {"contents": [{"parts": [{"text": prompt}]}], "generationConfig": config}
+        try:
+            resp = _gemini(modelo, body, tentativas=2)
+            break
+        except Exception as e:
+            erros.append(str(e)[:300])
+    else:
+        raise RuntimeError("Nenhum modelo do Gemini respondeu:\n" + "\n".join(erros))
     partes = resp["candidates"][0]["content"]["parts"]
     texto = "".join(p.get("text", "") for p in partes).strip()
     texto = texto.removeprefix("```json").removeprefix("```").removesuffix("```").strip()

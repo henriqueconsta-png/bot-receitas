@@ -1,0 +1,12 @@
+# Uma receita por linha. O bot usa de cima para baixo e marca as já usadas.
+# Se a lista acabar (ou ficar vazia), o Gemini escolhe sozinho.
+Bolo de fubá cremoso
+Pão de queijo mineiro
+Arroz doce com canela
+Frango assado com batatas
+Bolo de cenoura com cobertura de chocolate
+Pudim de leite condensado
+Feijão tropeiro
+Sopa de legumes com macarrão
+Bolinho de chuva
+Torta de frango de liquidificador

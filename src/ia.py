@@ -53,8 +53,15 @@ Responda SOMENTE com JSON neste formato:
   "modo_preparo": ["..."],
   "tempo": "ex.: 40 minutos",
   "rendimento": "ex.: 8 porções",
-  "prompt_imagem": "descrição EM INGLÊS só da aparência do prato pronto (ingredientes visíveis, cor, textura, recipiente)"
-}}"""
+  "prompt_imagem": "descrição EM INGLÊS, de 40 a 70 palavras, do prato pronto exatamente como ele é servido numa casa brasileira"
+}}
+
+Como escrever o prompt_imagem (ele vai para uma IA de imagem que não conhece pratos brasileiros):
+- Comece com o nome do prato em inglês e o nome em português entre parênteses.
+- Descreva o FORMATO real (ex.: round bundt cake with a hole in the center; flat rectangular slices; small round golden balls).
+- Diga o RECIPIENTE certo para esse prato (ex.: aluminum baking pan, glass baking dish, shallow white plate, clay pot).
+- Diga as CORES e TEXTURAS reais, e como fica por dentro se for servido cortado.
+- Cite SOMENTE ingredientes que estão na receita. Não invente guarnições, enfeites ou acompanhamentos."""
 
 
 def gerar_receita(ideia: str | None, evitar: list[str]) -> dict:
@@ -86,11 +93,12 @@ def gerar_receita(ideia: str | None, evitar: list[str]) -> dict:
 
 
 ESTILO_FOTO = (
-    "Homemade food photo taken with a smartphone, {prato}. "
-    "Served in a simple everyday ceramic dish on a rustic wooden kitchen table, "
-    "soft natural daylight from a window, late morning, realistic and appetizing, "
-    "slightly imperfect homemade look, shallow depth of field, vertical framing, "
-    "no text, no letters, no watermark, no people, no hands."
+    "{prato}. "
+    "Realistic close-up food photo taken with a smartphone in a Brazilian home kitchen. "
+    "The dish is the single main subject and fills most of the frame, 45-degree angle, "
+    "simple kitchen table, soft natural daylight from a window, late morning, appetizing, "
+    "slightly imperfect homemade look, vertical framing. "
+    "No text, no letters, no watermark, no people, no hands, no other dishes."
 )
 
 
